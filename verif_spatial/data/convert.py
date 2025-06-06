@@ -4,9 +4,9 @@
 # NetCDF files are expected to already contain
 # CF compliant names and units
 
-convert = dict(
+convert = {
     "2t": "air_temperature_2m",
     "2d": "dew_point_temperature_2m",
     "10u": "wind_speed_x_10m",
     "10v": "wind_speed_y_10m",
-)
+}
