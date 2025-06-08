@@ -1,0 +1,7 @@
+numpy
+scipy
+xarray
+pandas
+matplotlib
+anemoi.datasets
+cartopy
