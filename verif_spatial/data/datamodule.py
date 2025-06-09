@@ -21,7 +21,7 @@ class DataModule:
         label: str or list[str] = None
             Label the path(s). If given, the length has to match
             the length of path
-        interp_res: float = None
+        interp_res: float = 1.0
             Interpolation resolution in degrees
         reference_time: str = None
             Reference time of frame, required if Zarr format
@@ -37,7 +37,7 @@ class DataModule:
         lead_time: int or list[int] = None,
         member: int or list[int] = None,
         label: str or list[str] = None,
-        interp_res: float = None,
+        interp_res: float = 1.0,
         reference_time: str = None,
         freq: str = '6h',
         **kwargs,
@@ -45,11 +45,12 @@ class DataModule:
 
         self._atleast_1d(path, field, lead_time, member, label)
         self.data_obj = len(self.path) * [None]
-        reference_time_nc, lead_times_nc, zarr_idx = self._initialize_netcdf()
+        reference_time_nc, lead_times_nc, fields_nc, zarr_idx = self._initialize_netcdf()
+        self._get_field(fields_nc)
         if len(zarr_idx) > 0:
-            start, end = self._get_start_end(reference_time_nc, lead_times_nc, reference_time, lead_time, freq)
+            start, end = self._get_start_end(reference_time_nc, lead_times_nc, fields_nc, reference_time, lead_time, freq)
             self._initialize_zarr(start, end, freq, zarr_idx, **kwargs)
-        self._preprocess_data(interp_res)
+        self._preprocess_data(self.field, interp_res)
 
 
     def _atleast_1d(self, path, field, lead_time, member, label):
@@ -70,24 +71,24 @@ class DataModule:
 
     
     def _initialize_netcdf(self):
+        """Initialize NetCDF before Zarr to extract start and end
         """
-        """
-
         reference_time_nc = []
         lead_times_nc = []
         zarr_idx = []
-        for i, _path in enumerate(self.path):
-            suffix = _path.split('.')[-1]
+        for i, path_ in enumerate(self.path):
+            suffix = path_.split('.')[-1]
             if suffix == 'nc':
-                _data_obj = NetCDFReader(_path)
-                reference_time_nc.append(_data_obj.reference_time)
-                lead_times_nc.append(_data_obj.lead_times)
-                self.data_obj[i] = _data_obj
+                data_obj_ = NetCDFReader(path_, self.field)
+                reference_time_nc.append(data_obj_.reference_time)
+                lead_times_nc.append(data_obj_.lead_times)
+                fields_nc = data_obj_.ds.data_vars
+                self.data_obj[i] = data_obj_
             elif suffix == 'zarr':
                 zarr_idx.append(i)
             else:
                 raise NotImplementedError("Only NetCDF and Zarr formats are currently supported")
-        return reference_time_nc, lead_times_nc, zarr_idx
+        return reference_time_nc, lead_times_nc, fields_nc, zarr_idx
 
 
     def _get_start_end(self, reference_time_nc, lead_times_nc, reference_time, lead_time, freq):
@@ -128,21 +129,31 @@ class DataModule:
         return start, end
 
 
+    def _get_field(self, fields_nc):
+        """ """
+        if self.field is None:
+            all_fields_nc = []
+            for fields_nc_ in fields_nc:
+                all_fields_nc.extend(fields_nc)
+            self.field = np.unique(all_fields_nc)    
+
+
     def _initialize_zarr(self, start, end, freq, zarr_idx, **kwargs):
         """Now initialize Zarr data objects, based on reference date and lead times."""
-        kwargs['path'] = self.path
         kwargs['start'] = start
         kwargs['end'] = end
         kwargs['frequency'] = freq
-        kwargs['select'] = self.field
         for i in zarr_idx:
-            self.data_obj[i] = ZarrReader(kwargs)
+            self.data_obj[i] = ZarrReader(self.path[i], self.field, **kwargs)
 
 
-    def _preprocess_data(self, interp_res):
+    def _preprocess_data(self, field, interp_res):
         """Preprocess data."""
-        for data_obj_ in self.data_obj:
-            data_obj_._interpolate_if_1d(interp_res) # inline
+        for i, data_obj_ in enumerate(self.data_obj):
+            data_obj_._interpolate_if_1d(field, interp_res) # inline
+            if self.label is not None:
+                data_obj.label = label[i]
+
 
 
 # Unused code from here
@@ -225,11 +236,9 @@ class DataModule:
         self._convert_to_unix(reference_time, self.lead_time, freq)    
         # now initialize Zarr data objects, based on reference date and lead times
         start, end = self._get_all_dates(date, dates, lead_times, lead_times_nc, freq)
-        kwargs['paths'] = path
         kwargs['start'] = start
         kwargs['end'] = end
         kwargs['frequency'] = freq
-        kwargs['select'] = fields
         for i in zarr_idx:
             data_objs[i] = ZarrReader(kwargs)
         return data_objs

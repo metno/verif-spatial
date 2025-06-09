@@ -16,8 +16,14 @@ class NetCDFReader(DataReader):
     def __init__(
         self,
         path,
+        field,
     ) -> None:
-        #super
+        super().__init__(path, field)
         self.ds = xr.open_dataset(path)
         self.reference_time = time_to_datetime(self.ds.forecast_reference_time)
         self.lead_times = time_to_datetime(self.ds.time)
+        self._filter_field(field)
+
+    def _filter_field(self, field):
+        """ """
+        pass

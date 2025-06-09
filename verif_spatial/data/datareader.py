@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import scipy.interpolate
 
 
@@ -7,8 +8,10 @@ class DataReader:
     def __init__(
         self,
         path,
+        field,
     ) -> None:
-        self.path = path
+        self.label = path
+        self.field = field
 
     @staticmethod
     def _create_mesh(
@@ -25,6 +28,7 @@ class DataReader:
 
     def _interpolate_all_fields(
         self,
+        field: list[str],
         interp_res: float,
     ) -> None:
         """Interpolate all the dataset fields"""
@@ -39,20 +43,23 @@ class DataReader:
         out_coords = np.asarray([lon_grid.flatten(), lat_grid.flatten()], dtype=np.float32).T
 
         # interpolate from input grid to output grid
-        for field in ds.keys():
-            field_2d = ds[field]
-            interpolator = scipy.interpolate.NearestNDInterpolator(in_coords, field_2d)
-            q = interpolator(out_coords)
-            ens_size, lead_time, latlon = ds[field].shape
-            ds[field] = xr.DataArray(q.reshape(lat_grid.shape), dims=('members', 'leadtimes', 'x', 'y'))
+        for field_ in field:
+            field_2d = self.ds[field_]
+            lead_times, members, latlon = field_2d.shape
+            field_2d_ = np.empty((lead_times, members, *lat_grid.shape))
+            print(field_2d.shape)
+            for lead_time in range(lead_times):
+                for member in range(members):
+                    interpolator = scipy.interpolate.NearestNDInterpolator(in_coords, field_2d[lead_time, member])
+                    q = interpolator(out_coords)
+                    field_2d_[lead_time, member] = q.reshape(lat_grid.shape)
+            self.ds[field_] = xr.DataArray(field_2d_, dims=('leadtimes', 'members', 'x', 'y'))
 
     def _interpolate_if_1d(
         self,
+        field: list[str],
         interp_res: float,
     ) -> None:
         """Interpolate all dataset fields if they only have exactly one spatial dimension."""
-        if len(self.ds.location) == 1:
-            self._interpolate_all_fields(interp_res)
-
-    def get_ds(self):
-        return self.ds
+        if len(self.ds.location.shape) == 1:
+            self._interpolate_all_fields(field, interp_res)

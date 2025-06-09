@@ -10,9 +10,10 @@ class ZarrReader(DataReader):
     """Open Zarr compatible with anemoi.datasets
     Pass any anemoi dataset argument
     """
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, path, field, **kwargs) -> None:
+        super().__init__(path, field)
 
-        ds = open_dataset(**kwargs)
+        ds = open_dataset(path, selected=field, **kwargs)
         add_member_dim = False
         try:
             field_shape = ds.field_shape
