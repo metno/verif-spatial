@@ -45,14 +45,20 @@ class DataReader:
         # interpolate from input grid to output grid
         for field_ in field:
             field_2d = self.ds[field_]
-            lead_times, members, latlon = field_2d.shape
+            try:
+                lead_times, members, latlon = field_2d.shape
+            except:
+                continue
+            if members > 1:
+                continue
             field_2d_ = np.empty((lead_times, members, *lat_grid.shape))
-            print(field_2d.shape)
             for lead_time in range(lead_times):
                 for member in range(members):
                     interpolator = scipy.interpolate.NearestNDInterpolator(in_coords, field_2d[lead_time, member])
                     q = interpolator(out_coords)
                     field_2d_[lead_time, member] = q.reshape(lat_grid.shape)
+            self.ds['x'] = np.arange(lat.min(), lat.max(), interp_res)
+            self.ds['y'] = np.arange(lon.min(), lon.max(), interp_res)
             self.ds[field_] = xr.DataArray(field_2d_, dims=('leadtimes', 'members', 'x', 'y'))
 
     def _interpolate_if_1d(
