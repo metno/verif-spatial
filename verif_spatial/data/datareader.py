@@ -50,11 +50,8 @@ class DataReader:
         self,
         interp_res: float,
     ) -> None:
-        """Interpolate all dataset fields if they only have
-        one spatial dimension
-        """
-
-        if len(self.ds.shape) < 4:
+        """Interpolate all dataset fields if they only have exactly one spatial dimension."""
+        if len(self.ds.location) == 1:
             self._interpolate_all_fields(interp_res)
 
     def get_ds(self):

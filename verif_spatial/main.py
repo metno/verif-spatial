@@ -1,7 +1,7 @@
 from data.datamodule import DataModule
 from analyse.analyse import Analyse
 
-netcdf = "..."
-zarr = "..."
+dm = DataModule(path=["../netcdf/n320_pred_20230601T06Z.nc"])
 
-dm = DataModule(paths=["../netcdf/example.nc"])
+for data_obj_ in dm.data_obj:
+    print(data_obj_.ds)
