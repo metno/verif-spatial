@@ -30,9 +30,8 @@ def time_to_datetime(time):
             time_datetime.append(None)
             continue
         if isinstance(_time, str):
-            _time = pd.Timestamp(_time)
+            _time = pd.Timestamp(str(_time))
         if isinstance(_time, xr.DataArray):
-            print('time:', _time)
             _time = pd.Timestamp(_time.item())
         time_datetime.append(_time)
     return time_datetime[0] if len(time_datetime) == 1 else time_datetime

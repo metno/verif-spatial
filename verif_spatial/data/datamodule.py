@@ -3,7 +3,7 @@ import pandas as pd
 
 from .netcdf import NetCDFReader
 from .zarr import ZarrReader
-from .utils import time_to_unix
+from .utils import time_to_unix, time_to_datetime
 
 
 class DataModule:
@@ -48,7 +48,7 @@ class DataModule:
         reference_time_nc, lead_times_nc, fields_nc, zarr_idx = self._initialize_netcdf()
         self._get_field(fields_nc)
         if len(zarr_idx) > 0:
-            start, end = self._get_start_end(reference_time_nc, lead_times_nc, reference_time, lead_time, freq)
+            start, end = self._get_start_end(reference_time_nc, lead_times_nc, reference_time, self.lead_time, freq)
             self._initialize_zarr(start, end, freq, zarr_idx, **kwargs)
         self._preprocess_data(self.field, interp_res)
 
@@ -76,6 +76,7 @@ class DataModule:
         reference_time_nc = []
         lead_times_nc = []
         zarr_idx = []
+        fields_nc = []
         for i, path_ in enumerate(self.path):
             suffix = path_.split('.')[-1]
             if suffix == 'nc':
