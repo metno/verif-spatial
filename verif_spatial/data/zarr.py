@@ -11,6 +11,7 @@ class ZarrReader(DataReader):
     """Open Zarr compatible with anemoi.datasets
     Pass any anemoi dataset argument
     """
+
     def __init__(self, path, field, **kwargs) -> None:
         super().__init__(path, field)
 
@@ -20,7 +21,9 @@ class ZarrReader(DataReader):
             field_era.append(convert_inverse[field_])
 
         ds = open_dataset(path, select=field_era, **kwargs)
-        add_member_dim = False
+        lon, lat, member, dims = self._add_member_dim(ds.shape, ds.latitude, ds.longitude, field_shape in ds.attrs.get('regular_grid', False))
+                                                               
+        """
         try:
             field_shape = ds.field_shape
             dims = ['time', 'member', 'x', 'y']
@@ -44,9 +47,9 @@ class ZarrReader(DataReader):
                 members = shape[2]
             lon=(['latlon'], ds.longitudes)
             lat=(['latlon'], ds.latitudes)
-        
+        """
         time = (['time'], pd.date_range(start=kwargs['start'], end=kwargs['end'], freq=kwargs['frequency']))
-        member = (['member'], range(members))
+        #member = (['member'], range(members))
 
         coords = dict(
             longitude=lon,

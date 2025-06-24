@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 import scipy.interpolate
-
+from scipy.spatial import cKDTree
 
 class DataReader:
     """Data reader base class"""
@@ -12,6 +12,7 @@ class DataReader:
     ) -> None:
         self.label = path
         self.field = field
+        add_member_dim = False
 
         print(f"Reading '{path}'")
 
@@ -28,6 +29,31 @@ class DataReader:
         lat_grid, lon_grid = np.meshgrid(lat, lon)
         return lat_grid.T, lon_grid.T
 
+    def _add_member_dim(self, shape, lat, lon, regular=False):
+        """Add a member dimension to the shape if it is not present."""
+        if regular:
+            dims = ['time', 'member', 'x', 'y']
+            if len(shape) == 3:
+                # regular xy-grid, no ensemble members
+                self.add_member_dim = True
+                members = 1
+            elif len(shape) == 4:
+                members = shape[2]
+            lat_=(['x', 'y'], np.array(lat))
+            lon_=(['x', 'y'], np.array(lon))
+        else:
+            dims = ['time', 'member', 'latlon']
+            if len(shape) == 2:
+                # regular xy-grid, no ensemble members
+                self.add_member_dim = True
+                members = 1
+            elif len(shape) == 3:
+                members = shape[2]
+            lat_=(['latlon'], np.array(lat))
+            lon_=(['latlon'], np.array(lon))
+        member = (['member'], range(members))
+        return lon_, lat_, member, dims
+
     def _interpolate_all_fields(
         self,
         field: list[str],
@@ -39,10 +65,16 @@ class DataReader:
         lat = self.ds.latitude
         lon = self.ds.longitude
         in_coords = np.asarray([lon, lat], dtype=np.float32).T
+        tree = cKDTree(in_coords)
 
         # output grid
         lat_grid, lon_grid = self._create_mesh(lat, lon, interp_res)
         out_coords = np.asarray([lon_grid.flatten(), lat_grid.flatten()], dtype=np.float32).T
+        _, indices = tree.query(out_coords, k=1)
+        self.ds['x'] = np.arange(lat.min(), lat.max(), interp_res)
+        self.ds['y'] = np.arange(lon.min(), lon.max(), interp_res)
+        self.ds['latitude'] = (['x', 'y'], lat_grid)
+        self.ds['longitude'] = (['x', 'y'], lon_grid)
 
         # interpolate from input grid to output grid
         for field_ in field:
@@ -53,15 +85,9 @@ class DataReader:
                 continue
             if members > 1:
                 continue
-            field_2d_ = np.empty((lead_times, members, *lat_grid.shape))
-            for lead_time in range(lead_times):
-                for member in range(members):
-                    interpolator = scipy.interpolate.NearestNDInterpolator(in_coords, field_2d[lead_time, member])
-                    q = interpolator(out_coords)
-                    field_2d_[lead_time, member] = q.reshape(lat_grid.shape)
-            self.ds['x'] = np.arange(lat.min(), lat.max(), interp_res)
-            self.ds['y'] = np.arange(lon.min(), lon.max(), interp_res)
-            self.ds[field_] = xr.DataArray(field_2d_, dims=('leadtimes', 'members', 'x', 'y'))
+            out_shape = (lead_times, members, lat_grid.shape[0], lat_grid.shape[1])
+            q = np.array(field_2d[..., indices]).reshape(out_shape)
+            self.ds[field_] = xr.DataArray(q, dims=('leadtimes', 'members', 'x', 'y'))
 
     def _interpolate_if_1d(
         self,

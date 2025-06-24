@@ -29,7 +29,8 @@ class Plot2d(Visualise):
             ax.add_feature(cfeature.BORDERS, linestyle=':', edgecolor='black')
             ax.add_feature(cfeature.LAND, edgecolor='black')
             ax.add_feature(cfeature.OCEAN, edgecolor='black')
-            im = ax.pcolormesh(ds.x, ds.y, ds[field][member, lead_time], **kwargs)
+            print(ds.longitude.shape, ds.latitude.shape, ds[field].shape)
+            im = ax.pcolormesh(ds.longitude, ds.latitude, ds[field][lead_time, member], **kwargs)
         #cbax = self.fig.colorbar(im, ax=self.axs.ravel().tolist())
         #cbax.set_label(f"{field} ({units})")
         #return im
@@ -45,7 +46,7 @@ class Plot2d(Visualise):
         ax = self.axs[0,0]
         for data_obj_ in self.data_obj:
             ds = data_obj_.ds
-            im = ax.contour(ds.y, ds.x, field, **kwargs)
+            im = ax.contour(ds.longitude, ds.latitude, field, **kwargs)
             ax.clabel(im, inline=True, fontsize=8, fmt='%1.0f')
         return im
 
