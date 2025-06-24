@@ -7,6 +7,14 @@
 convert = {
     "2t": "air_temperature_2m",
     "2d": "dew_point_temperature_2m",
-    "10u": "wind_speed_x_10m",
-    "10v": "wind_speed_y_10m",
+    "10u": "x_wind_10m",
+    "10v": "y_wind_10m",
+    "msl": "air_pressure_at_sea_level",
+}
+convert_inverse = {
+    "air_temperature_2m": "2t",
+    "dew_point_temperature_2m": "2d",
+    "x_wind_10m": "10u",
+    "y_wind_10m": "10v",
+    "air_pressure_at_sea_level": "msl",
 }

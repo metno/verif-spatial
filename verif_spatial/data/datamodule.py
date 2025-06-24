@@ -48,7 +48,7 @@ class DataModule:
         reference_time_nc, lead_times_nc, fields_nc, zarr_idx = self._initialize_netcdf()
         self._get_field(fields_nc)
         if len(zarr_idx) > 0:
-            start, end = self._get_start_end(reference_time_nc, lead_times_nc, fields_nc, reference_time, lead_time, freq)
+            start, end = self._get_start_end(reference_time_nc, lead_times_nc, reference_time, lead_time, freq)
             self._initialize_zarr(start, end, freq, zarr_idx, **kwargs)
         self._preprocess_data(self.field, interp_res)
 
@@ -121,9 +121,10 @@ class DataModule:
             assert reference_time is not None, "'lead_time' has to be accommodated by 'reference_time'"
             end = start + pd.Timedelta(max(lead_time) * freq_quantity, freq_unit)
         elif len(lead_times_nc) > 0:
-            end = -np.inf
+            end = pd.to_datetime('1970-01-01 00:00')
             for lead_times_nc_ in lead_times_nc:
-                end = max(end, max(lead_times_nc_))
+                #end = max(end, max(lead_times_nc_))
+                end = max(end, lead_times_nc_[-1])
         else:
             raise ValueError("Lead time is not obtained, please specify lead_time")
         return start, end

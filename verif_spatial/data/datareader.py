@@ -13,6 +13,8 @@ class DataReader:
         self.label = path
         self.field = field
 
+        print(f"Reading '{path}'")
+
     @staticmethod
     def _create_mesh(
         lat: np.ndarray,
@@ -67,5 +69,5 @@ class DataReader:
         interp_res: float,
     ) -> None:
         """Interpolate all dataset fields if they only have exactly one spatial dimension."""
-        if len(self.ds.location.shape) == 1:
+        if len(self.ds.latitude.shape) == 1:
             self._interpolate_all_fields(field, interp_res)

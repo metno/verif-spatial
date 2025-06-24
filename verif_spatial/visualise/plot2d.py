@@ -29,10 +29,10 @@ class Plot2d(Visualise):
             ax.add_feature(cfeature.BORDERS, linestyle=':', edgecolor='black')
             ax.add_feature(cfeature.LAND, edgecolor='black')
             ax.add_feature(cfeature.OCEAN, edgecolor='black')
-            im = ax.pcolormesh(ds.y, ds.x, ds[field][member, lead_time], **kwargs)
-        cbax = self.fig.colorbar(im, ax=self.axs.ravel().tolist())
-        cbax.set_label(f"{field} ({units})")
-        return im
+            im = ax.pcolormesh(ds.x, ds.y, ds[field][member, lead_time], **kwargs)
+        #cbax = self.fig.colorbar(im, ax=self.axs.ravel().tolist())
+        #cbax.set_label(f"{field} ({units})")
+        #return im
 
 
     def add_contour_lines(
@@ -48,3 +48,6 @@ class Plot2d(Visualise):
             im = ax.contour(ds.y, ds.x, field, **kwargs)
             ax.clabel(im, inline=True, fontsize=8, fmt='%1.0f')
         return im
+
+    def __repr__(self):
+        return "Colormesh 2D"

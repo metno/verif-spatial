@@ -19,8 +19,10 @@ class NetCDFReader(DataReader):
         field,
     ) -> None:
         super().__init__(path, field)
+        static_fields = ['time', 'forecast_reference_time', 'longitude', 'latitude', 'x', 'y']
         self.ds = xr.open_dataset(path)
-        print(self.ds)
+        static_fields.extend(field)
+        self.ds = self.ds[static_fields]
         self.reference_time = time_to_datetime(self.ds.forecast_reference_time)
         self.lead_times = time_to_datetime(self.ds.time)
         self._filter_field(field)
